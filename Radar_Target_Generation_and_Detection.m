@@ -89,27 +89,27 @@ end
  % *%TODO* :
 %reshape the vector into Nr*Nd array. Nr and Nd here would also define the size of
 %Range and Doppler FFT respectively.
+Mix=reshape(Mix,[Nr,Nd]);
 
  % *%TODO* :
 %run the FFT on the beat signal along the range bins dimension (Nr) and
 %normalize.
-
+sig_fft1 = fft(Mix(1:Nr));
+sig_fft1 = sig_fft1./Nr;
  % *%TODO* :
 % Take the absolute value of FFT output
-
+sig_fft1 = abs(sig_fft1);  
  % *%TODO* :
 % Output of FFT is double sided signal, but we are interested in only one side of the spectrum.
 % Hence we throw out half of the samples.
-
+one_side_sig = sig_fft1(1:Nr/2);
 
 %plotting the range
-figure ('Name','Range from First FFT')
-subplot(2,1,1)
 
+figure ('Name','Range from First FFT')
  % *%TODO* :
  % plot FFT output 
-
- 
+plot(one_side_sig);
 axis ([0 200 0 1]);
 
 
