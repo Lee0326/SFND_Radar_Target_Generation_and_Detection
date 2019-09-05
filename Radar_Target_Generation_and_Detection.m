@@ -79,7 +79,7 @@ for i=1:length(t)
     %Now by mixing the Transmit and Receive generate the beat signal
     %This is done by element wise matrix multiplication of Transmit and
     %Receiver Signal
-    Mix(i) = Tx(i)* Rx(i);
+    Mix(i) = Tx(i).* Rx(i);
     
 end
 
@@ -149,21 +149,25 @@ figure,surf(doppler_axis,range_axis,RDM);
 
 % *%TODO* :
 %Select the number of Training Cells in both the dimensions.
-TB_C = 2;
-TB_R = 1;
+TB_C = 5;       % the Training Band Columns
+TB_R = 4;       % the Training Band Rows
+Tr = 2*TB_C;   % the Training Cells in Range direction
+Td = 2*TB_R;   % the Training Cells in Doppler direction
 % *%TODO* :
 %Select the number of Guard Cells in both dimensions around the Cell under 
 %test (CUT) for accurate estimation
-GB_C = 2;
-GB_R = 1;
+GB_C = 2;       % the Guard Band Columns
+GB_R = 2;       % the Guard Band Rows
+Gr = 2*GB_C;   % the Guard Cells in Range direction
+Gd = 2*GB_R;   % the Guard Cells in Doppler direction
+% Calculate the overall count of the training cells
+TC_Count = (2*(GB_C+TB_C)+1)*(2*(GB_R+TB_R)+1)-(2*GB_C+1)*(2*GB_R+1);
 % *%TODO* :
 % offset the threshold by SNR value in dB
-offset = 3;
+offset = 8;
 % *%TODO* :
 %Create a vector to store noise_level for each iteration on training cells
-noise_level = zeros(1,1);
-
-
+%noise_level = zeros(1,1);
 % *%TODO* :
 %design a loop such that it slides the CUT across range doppler map by
 %giving margins at the edges for Training and Guard Cells.
@@ -178,10 +182,21 @@ noise_level = zeros(1,1);
 
    % Use RDM[x,y] as the matrix from the output of 2D FFT for implementing
    % CFAR
-
-
-
-
+POW = db2pow(RDM);
+for i = 1 :(Nr/2)-2*(GB_C+TB_C)-1
+    for j = 1 : Nd-2*(GB_R+TB_R) - 1        
+        noise_level = sum(sum(POW(i:i+2*(TB_C+GB_C)+1,j:j+2*(TB_R+GB_R)+1))) - ...
+                      sum(sum(POW(i+TB_C:i+TB_C+2*GB_C+1,j+TB_R:j+TB_R+2*GB_R+1)));
+        threshold = pow2db((noise_level/TC_Count)) + offset;
+        CUT = RDM(i+GB_C+TB_C+1,j+GB_R+TB_R+1);
+        
+        if(CUT < threshold)
+            RDM(i+GB_C+TB_C+1,j+GB_R+TB_R+1) = 0;
+        else
+            RDM(i+GB_C+TB_C+1,j+GB_R+TB_R+1) = 1;
+        end
+    end
+end
 
 % *%TODO* :
 % The process above will generate a thresholded block, which is smaller 
@@ -189,10 +204,11 @@ noise_level = zeros(1,1);
 %matrix. Hence,few cells will not be thresholded. To keep the map size same
 % set those values to 0. 
  
+RDM(1:(Tr+Gr),:) = 0;
+RDM((end-(Tr+Gr)):end,:) = 0;
 
-
-
-
+RDM(:,1:(Td+Gd)) = 0;
+RDM(:,(end-(Td+Gd)):end) = 0;
 
 
 
@@ -200,7 +216,8 @@ noise_level = zeros(1,1);
 % *%TODO* :
 %display the CFAR output using the Surf function like we did for Range
 %Doppler Response output.
-figure,surf(doppler_axis,range_axis,'replace this with output');
+
+figure,surf(doppler_axis,range_axis,RDM);
 colorbar;
 
 
