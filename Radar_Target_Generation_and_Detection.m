@@ -12,13 +12,13 @@ range_max = 200;
 range_reso = 1;
 max_velocity = 100;
 c = 3*10^8;
- 
+
 %speed of light = 3e8
 %% User Defined Range and Velocity of target
 % *%TODO* :
 % define the target's initial position and velocity. Note : Velocity
 % remains contant
- R = 110;  % initial position in m
+ R = 150;  % initial position in m
  v = -20;  % velocity in m/s
 
 
@@ -61,9 +61,7 @@ td=zeros(1,length(t));
 %% Signal generation and Moving Target simulation
 % Running the radar scenario over the time. 
 
-for i=1:length(t)         
-    
-    
+for i=1:length(t)          
     % *%TODO* :
     %For each time stamp update the Range of the Target for constant velocity. 
     r_t(i) = R + v*t(i);
@@ -79,12 +77,10 @@ for i=1:length(t)
     %Now by mixing the Transmit and Receive generate the beat signal
     %This is done by element wise matrix multiplication of Transmit and
     %Receiver Signal
-    Mix(i) = Tx(i).* Rx(i);
-    
+    Mix(i) = Tx(i).* Rx(i);    
 end
 
 %% RANGE MEASUREMENT
-
 
  % *%TODO* :
 %reshape the vector into Nr*Nd array. Nr and Nd here would also define the size of
@@ -135,7 +131,7 @@ sig_fft2 = fft2(Mix,Nr,Nd);
 sig_fft2 = sig_fft2(1:Nr/2,1:Nd);
 sig_fft2 = fftshift (sig_fft2);
 RDM = abs(sig_fft2);
-RDM = 10*log10(RDM) ;
+RDM = 10*log10(RDM);
 
 %use the surf function to plot the output of 2DFFT and to show axis in both
 %dimensions
@@ -149,22 +145,18 @@ figure,surf(doppler_axis,range_axis,RDM);
 
 % *%TODO* :
 %Select the number of Training Cells in both the dimensions.
-TB_C = 5;       % the Training Band Columns
-TB_R = 4;       % the Training Band Rows
-Tr = 2*TB_C;   % the Training Cells in Range direction
-Td = 2*TB_R;   % the Training Cells in Doppler direction
+Tr = 7;   % the Training Cells in Range direction
+Td = 6;   % the Training Cells in Doppler direction
 % *%TODO* :
 %Select the number of Guard Cells in both dimensions around the Cell under 
 %test (CUT) for accurate estimation
-GB_C = 2;       % the Guard Band Columns
-GB_R = 2;       % the Guard Band Rows
-Gr = 2*GB_C;   % the Guard Cells in Range direction
-Gd = 2*GB_R;   % the Guard Cells in Doppler direction
+Gr = 3;   % the Guard Cells in Range direction
+Gd = 2;   % the Guard Cells in Doppler direction
 % Calculate the overall count of the training cells
-TC_Count = (2*(GB_C+TB_C)+1)*(2*(GB_R+TB_R)+1)-(2*GB_C+1)*(2*GB_R+1);
+TC_Count = (2*(Gr+Tr)+1)*(2*(Gd+Td)+1)-(2*Gr+1)*(2*Gd+1);
 % *%TODO* :
 % offset the threshold by SNR value in dB
-offset = 8;
+offset = 7;
 % *%TODO* :
 %Create a vector to store noise_level for each iteration on training cells
 %noise_level = zeros(1,1);
@@ -183,17 +175,16 @@ offset = 8;
    % Use RDM[x,y] as the matrix from the output of 2D FFT for implementing
    % CFAR
 POW = db2pow(RDM);
-for i = 1 :(Nr/2)-2*(GB_C+TB_C)-1
-    for j = 1 : Nd-2*(GB_R+TB_R) - 1        
-        noise_level = sum(sum(POW(i:i+2*(TB_C+GB_C)+1,j:j+2*(TB_R+GB_R)+1))) - ...
-                      sum(sum(POW(i+TB_C:i+TB_C+2*GB_C+1,j+TB_R:j+TB_R+2*GB_R+1)));
+for i = 1 : (Nr/2)-2*(Gr+Tr)
+    for j = 1 : Nd-2*(Gd+Td)        
+        noise_level = sum(sum(POW(i:i+2*(Tr+Gr),j:j+2*(Td+Gd)))) - ...
+                      sum(sum(POW(i+Tr:i+Tr+2*Gr,j+Td:j+Td+2*Gd)));
         threshold = pow2db((noise_level/TC_Count)) + offset;
-        CUT = RDM(i+GB_C+TB_C+1,j+GB_R+TB_R+1);
-        
+        CUT = RDM(i+Gr+Tr,j+Gd+Td);    
         if(CUT < threshold)
-            RDM(i+GB_C+TB_C+1,j+GB_R+TB_R+1) = 0;
+            RDM(i+Gr+Tr,j+Gd+Td) = 0;
         else
-            RDM(i+GB_C+TB_C+1,j+GB_R+TB_R+1) = 1;
+            RDM(i+Gr+Tr,j+Gd+Td) = 1;
         end
     end
 end
